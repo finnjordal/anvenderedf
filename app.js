@@ -2,7 +2,11 @@
 
 var rp = require('request-promise')
   	, util= require('util')
-		,	Q= require('Q');;
+		,	Q= require('Q')
+		,	csvparse = require('csv-parse')
+		, fs = require('fs')
+		,	readline = require('readline')	  
+  	, Transform = require('stream').Transform;
 
 
 var options = {
@@ -20,33 +24,59 @@ var options = {
     json: true  
 };
 
-Q.spawn(function* anvenderinfo() {
-	var response= yield rp(options);
-	//console.log(util.inspect(response.body.objects));
-	if (response.statusCode === 200) {
-		for (const elem of response.body.objects.object) {
-			if (elem.type === 'organisation') {
-    		//console.log(elem.attributes.attribute);
-    		for (const org of elem.attributes.attribute) {
-    			if (org.name ==='org-name') {
-    				console.log(org.value);
-    			}
-    			else if (org.name ==='org-type') {
-    				console.log(org.value);
-    			}
-    			else if (org.name ==='address') {
-    				console.log(org.value);
-    			}
-    		}
-    	}
-    	else {
-    		//console.log(elem.type);
-    	}
-		}
-	}
-	else {
+var csvparser = csvparse({delimiter: ';'});
 
-	}
-});
+var ripeopslag = new Transform({objectMode: true});
+ripeopslag._transform = function(anvenderinfo, encoding, done) {
+	var me= this;
+  //console.log(util.inspect(anvenderinfo));
+  options.qs['query-string']= anvenderinfo[0];
+	rp(options)
+    .then(function (response) {
+    	var anvender= {};
+    	if (response.statusCode === 200) {
+				for (const elem of response.body.objects.object) {
+					if (elem.type === 'organisation') {
+		    		//console.log(elem.attributes.attribute);
+		    		for (const org of elem.attributes.attribute) {
+		    			if (org.name ==='org-name') {
+		    				//console.log(org.value);
+		    				anvender.navn= org.value;
+		    			}
+		    			else if (org.name ==='org-type') {
+		    				//console.log(org.value);
+		    				anvender.type= org.value;
+		    			}
+		    			else if (org.name ==='address') {
+		    				//console.log(org.value);
+		    				anvender.adresse= org.value;
+		    			}
+		    		}
+		    	}
+		    	else {
+		    		//console.log(elem.type);
+		    	}
+				}
+				anvender.ip= anvenderinfo[0];
+				anvender.data= anvenderinfo[1];
+				if (anvender.navn) console.log("%s, %s, %s, %s, %s", anvender.navn, anvender.type, anvender.adresse, anvender.ip, anvender.data);
+			}
+			else {
+				console.log('Statuskode fra RIPE: ' + response.statusCode);
+			} 
+      //me.push(adresse); 
+      done();
+        // Process html... 
+    })
+    .catch(function (err) {
+      console.log('Fejl i RIPE opslag: ' + err)  
+      done(); 
+    });
+}
+
+
+fs.createReadStream(__dirname+'/DataforbrugPrIP.csv').pipe(csvparser).pipe(ripeopslag);
+ 
+//fs.createReadStream(__dirname+'/kortliste.csv').pipe(csvparser).pipe(adresseparser).pipe(adresseopslag).pipe(fritekstopslag).pipe(vejnavnhusnrogpostnropslag).pipe(vejnavnoghusnropslag).pipe(tocsv).pipe(fs.createWriteStream('adresser.csv'));
 
 		
