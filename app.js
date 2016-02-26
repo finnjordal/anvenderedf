@@ -3,7 +3,8 @@
 var rp = require('request-promise')
   	, util= require('util')
 		,	Q= require('Q')
-		,	csvparse = require('csv-parse')
+		,	csvparse = require('csv-parse')		
+  	, stringify = require('csv-stringify')
 		, fs = require('fs')
 		,	readline = require('readline')	  
   	, Transform = require('stream').Transform;
@@ -53,19 +54,37 @@ ripeopslag._transform = function(anvenderinfo, encoding, done) {
 		    			}
 		    		}
 		    	}
+		    	else if (elem.type === 'inetnum') {
+		    		//console.log(elem.attributes.attribute);
+		    		for (const org of elem.attributes.attribute) {
+		    			if (org.name ==='netname') {
+		    				//console.log(org.value);
+		    				anvender.navn= org.value;
+		    			}
+		    			else if (org.name ==='org-type') {
+		    				//console.log(org.value);
+		    				anvender.type= org.value;
+		    			}
+		    			else if (org.name ==='address') {
+		    				//console.log(org.value);
+		    				anvender.adresse= org.value;
+		    			}
+		    		}
+		    	}
 		    	else {
-		    		//console.log(elem.type);
+		    		console.log(elem.type);
 		    	}
 				}
 				anvender.ip= anvenderinfo[0];
 				anvender.data= anvenderinfo[1];
 				if (anvender.navn) console.log("%s, %s, %s, %s, %s", anvender.navn, anvender.type, anvender.adresse, anvender.ip, anvender.data);
+
+     			 me.push(anvender); 
 			}
 			else {
 				console.log('Statuskode fra RIPE: ' + response.statusCode);
-			} 
-      //me.push(adresse); 
-      done();
+			}
+			done(); 
         // Process html... 
     })
     .catch(function (err) {
@@ -75,7 +94,8 @@ ripeopslag._transform = function(anvenderinfo, encoding, done) {
 }
 
 
-fs.createReadStream(__dirname+'/DataforbrugPrIP.csv').pipe(csvparser).pipe(ripeopslag);
+var tocsv= stringify({header: true});
+fs.createReadStream(__dirname+'/DataforbrugPrIP.csv').pipe(csvparser).pipe(ripeopslag).pipe(tocsv).pipe(fs.createWriteStream('anvendere.csv'));;
  
 //fs.createReadStream(__dirname+'/kortliste.csv').pipe(csvparser).pipe(adresseparser).pipe(adresseopslag).pipe(fritekstopslag).pipe(vejnavnhusnrogpostnropslag).pipe(vejnavnoghusnropslag).pipe(tocsv).pipe(fs.createWriteStream('adresser.csv'));
 
