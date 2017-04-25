@@ -95,7 +95,7 @@ ripeopslag._transform = function(anvenderinfo, encoding, done) {
 
 
 var tocsv= stringify({header: true});
-fs.createReadStream(__dirname+'/DataforbrugPrIP.csv').pipe(csvparser).pipe(ripeopslag).pipe(tocsv).pipe(fs.createWriteStream('anvendere.csv'));;
+fs.createReadStream(__dirname+'/DataforbrugPerIP.csv').pipe(csvparser).pipe(ripeopslag).pipe(tocsv).pipe(fs.createWriteStream('anvendere.csv'));;
  
 //fs.createReadStream(__dirname+'/kortliste.csv').pipe(csvparser).pipe(adresseparser).pipe(adresseopslag).pipe(fritekstopslag).pipe(vejnavnhusnrogpostnropslag).pipe(vejnavnoghusnropslag).pipe(tocsv).pipe(fs.createWriteStream('adresser.csv'));
 
